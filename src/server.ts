@@ -3,21 +3,17 @@ import mongoose from "mongoose";
 import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
-import http, { createServer } from "http";
-import { Server } from "socket.io";
+import { createServer } from "http";
 import dotenv from "dotenv";
 import morgan from "morgan";
-import { Auction } from "./models/Auction";
-import { Bid } from "./models/Bid";
-import { User } from "./models/User";
-import authRoutes from "./routes/auth";
-import auctionRoutes from "./routes/auction";
-import bidRoutes from "./routes/bid";
-import notificationRoutes from "./routes/notification";
-
-interface CustomRequest extends Request {
-  io: Server;
-}
+import { initializeSocket } from "./services/socket.js";
+import { Auction } from "./models/Auction.js";
+import { Bid } from "./models/Bid.js";
+import { User } from "./models/User.js";
+import authRoutes from "./routes/auth.js";
+import auctionRoutes from "./routes/auction.js";
+import bidRoutes from "./routes/bid.js";
+import notificationRoutes from "./routes/notification.js";
 
 dotenv.config();
 
@@ -26,22 +22,17 @@ app.use(compression());
 app.use(helmet());
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"],
-  },
-});
+const io = initializeSocket(httpServer);
 
 // Attach io to app
-app.use((req: CustomRequest, res: Response, next: NextFunction) => {
-  req.io = io;
-  next();
-});
+app.set("io", io);
 
 // Database connection
+const MONGODB_URI =
+  process.env.MONGODB_URI || "mongodb://localhost:27017/auction";
+
 mongoose
-  .connect(process.env.MONGODB_URI!)
+  .connect(MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -54,7 +45,7 @@ mongoose.connection.once("open", () => {
 // Middleware
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -78,11 +69,11 @@ app.get("/health", (req, res) => {
 });
 
 // Error handling middleware
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Endpoint not found" });
 });
 
-app.use((err: Error, req: express.Request, res: express.Response) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: "Internal server error" });
 });

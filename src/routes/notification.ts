@@ -1,14 +1,7 @@
 import express, { Request, Response } from "express";
 import { Types } from "mongoose";
-import { Notification } from "../models/Notification";
-import { authenticate } from "../middleware/auth";
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    _id: string;
-  };
-}
+import { Notification } from "../models/Notification.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -17,9 +10,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = (req as AuthenticatedRequest).user?._id;
+      const userId = req.user?.userId;
       const notifications = await Notification.find({
-        userId: userId,
+        userId: new Types.ObjectId(userId),
       })
         .sort({ createdAt: -1 })
         .limit(50);
@@ -46,7 +39,8 @@ router.post(
 
       await notification.save();
 
-      req.io.to(userId.toString()).emit("new-notification", notification);
+      const io = req.app.get("io");
+      io.to(userId.toString()).emit("new-notification", notification);
 
       res.status(201).json(notification);
     } catch (error) {

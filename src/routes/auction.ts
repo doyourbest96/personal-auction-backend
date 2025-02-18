@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
 import { Document, FilterQuery, Types } from "mongoose";
-import { Auction, IAuction } from "../models/Auction";
-import { User } from "../models/User";
-import { authenticate } from "../middleware/auth";
+import { Auction, IAuction } from "../models/Auction.js";
+import { User } from "../models/User.js";
+import { authenticate } from "../middleware/auth.js";
 import { body, param, validationResult } from "express-validator";
 
 interface AuthenticatedRequest extends Request {
