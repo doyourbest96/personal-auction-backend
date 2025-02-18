@@ -94,11 +94,6 @@ process.on("SIGINT", async () => {
   });
 });
 
-// Database event listeners
-mongoose.connection.on("connected", () => {
-  console.log("Mongoose connected to DB");
-});
-
 mongoose.connection.on("error", (err) => {
   console.error("Mongoose connection error:", err);
 });

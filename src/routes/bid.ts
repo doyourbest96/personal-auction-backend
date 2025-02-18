@@ -5,12 +5,6 @@ import { Auction, IAuction } from "../models/Auction.js";
 import { authenticate } from "../middleware/auth.js";
 import { body, validationResult } from "express-validator";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-  };
-}
-
 type AuctionDocument = Document<Types.ObjectId> & IAuction;
 
 const router = express.Router();
@@ -27,7 +21,7 @@ router.post(
     }
 
     try {
-      const userId = (req as AuthenticatedRequest).user?.userId;
+      const userId = (req as Request).user?.userId;
       const auction = (await Auction.findById(
         req.body.auctionId
       )) as AuctionDocument;
